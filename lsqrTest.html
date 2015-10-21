@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="lsqr.js"></script>
+
+</head>
+<body>
+    LSQR in javascript test
+    <br>
+    <h1>Tests</h1>
+    <textarea id="tests" rows="9" cols="90">
+{num_rows:1,num_cols:1,duplicate_param:1,power_param:1,damp_param:0}
+{num_rows:2,num_cols:1,duplicate_param:1,power_param:1,damp_param:0}
+{num_rows:40,num_cols:40,duplicate_param:4,power_param:4,damp_param:0}
+{num_rows:80,num_cols:80,duplicate_param:4,power_param:4,damp_param:0.01}
+{num_rows:10,num_cols:10,duplicate_param:1,power_param:8,damp_param:0.01}
+{num_rows:40,num_cols:40,duplicate_param:4,power_param:7,damp_param:0}
+{num_rows:80,num_cols:40,duplicate_param:4,power_param:6,damp_param:0}
+{num_rows:20,num_cols:10,duplicate_param:1,power_param:6,damp_param:0}
+{num_rows:20,num_cols:10,duplicate_param:1,power_param:8,damp_param:0}
+    </textarea>
+    <br>
+    <button onclick="launchTests()">Launch Tests</button>
+    <br>
+    <hr>
+    <h1>Results</h1>
+    <div>
+        <textarea rows="30" cols="90" id="results"></textarea>
+    </div>
+    <script>
+        function launchTests(){
+            var output=[];
+            var testElement=document.getElementById('tests');
+            var testContents=testElement.value;
+            var testArray=testContents.split("\n");
+            var testsToPerform=[];
+            for (var i=0; i<testArray.length; i++){
+                try{
+                   var testStr=testArray[i];
+                   eval("params="+testStr);
+                   params.output=output;
+                   testsToPerform.push(params);
+                }catch(e){
+
+                }
+            }
+            var d=new Date();
+            for (var i=0; i<testsToPerform.length; i++){
+                var testToPerform=testsToPerform[i];
+                lsqr.test_lsqr(testToPerform);
+            }
+            var d2=new Date();
+            var str="Total Time: "+((d2-d)/1000)+"\n"+output.join("");
+            var textArea=document.getElementById("results");
+            textArea.innerHTML=str;
+        }
+    </script>
+</body>
+</html>
