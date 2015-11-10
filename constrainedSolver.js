@@ -236,7 +236,6 @@
                 // está asociada (potencialmente tiene un valor distinto de cero)
                 function init(params) {
                     var constraints = params.constraints;
-                    var maxLSQRIters = params.maxLSQRIters || 99999;
                     _sparseJacobian = newJacobian();
                     for (var i = 0, ic = constraints.length; i < ic; i++) {
                         var constraint = constraints[i];
@@ -260,9 +259,6 @@
                             }
                         }
                     });
-                    _lsqr.allocLsqrMem();
-                    var input = _lsqr.input;
-                    input.max_iter = maxLSQRIters;
                 }
 
                 function evaluate(params) {
@@ -284,7 +280,7 @@
                 function solve(params) {
                     var iterations = params.iterations;
                     var initialSolution = params.initialSolution// x
-                    var targetEvaluation = params.targetEvaluation; // b
+                    var targetEvaluation = params.targetEvaluation; // b (optional, if not provided, we will use 0)
                     var damping = params.damping || 0;
                     var useSylvester = params.useSylvester;
                     var maxIter = params.lsqrIterations || 100;
@@ -292,10 +288,18 @@
 
                     var act_mat_cond_num = 0;
 
+                    var numRows=_sparseJacobian.getNumRows();
                     var vectorX = new Float64Array(initialSolution);
-                    var vectorB = new Float64Array(targetEvaluation);
-                    var vectorY = new Float64Array(vectorB.length);
-                    var vectorBMinusY = new Float64Array(targetEvaluation.length);
+                    var vectorB = new Float64Array(numRows);
+
+                    if (targetEvaluation && targetEvaluation.length==numRows){
+                        for (var i=0; i<numRows; i++){
+                            vectorB[i]=+targetEvaluation[i];
+                        }
+                    }
+
+                    var vectorY = new Float64Array(numRows);
+                    var vectorBMinusY = new Float64Array(numRows);
                     var vectorWorkX = new Float64Array(initialSolution.length);
 
                     for (var iter = 0; iter < iterations; iter++) {
@@ -362,7 +366,7 @@
 
 
                 return {
-                    init: init, // params -> {constraints:[{type:integer,data:object,variables[integer]}],maxLSQRIters:integer}
+                    init: init, // params -> {constraints:[{type:integer,data:object,variables[integer]}]}
                     solve: solve
                 }
             }
