@@ -2528,8 +2528,18 @@
                          *     Use a plane rotation to eliminate the damping parameter.
                          *     This alters the diagonal (RHOBAR) of the lower-bidiagonal matrix.
                          */
-                        cs1 = rhobar / Math.sqrt(sqr(+rhobar) + sqr(+input.damp_val));
-                        sn1 = input.damp_val / Math.sqrt(sqr(+rhobar) + sqr(+input.damp_val));
+                        var faux=Math.sqrt(sqr(+rhobar) + sqr(+input.damp_val));
+                        if (faux*faux>0.0){
+                            cs1 = rhobar / faux;
+                        }else
+                            cs1=0;
+                        faux=Math.sqrt(sqr(+rhobar) + sqr(+input.damp_val));
+                        if (faux*faux>0.0){
+                            sn1 = input.damp_val / faux;
+                        }else{
+                            sn1=0;
+                        }
+
 
                         psi = sn1 * phibar;
                         phibar = cs1 * phibar;
@@ -2538,8 +2548,15 @@
                          *     of the lower-bidiagonal matrix, giving an upper-bidiagonal matrix.
                          */
                         rho = Math.sqrt(sqr(rhobar) + sqr(input.damp_val) + sqr(beta));
-                        cs = Math.sqrt(sqr(rhobar) + sqr(input.damp_val)) / rho;
-                        sn = beta / rho;
+                        if (rho*rho>0.0){
+                            cs = Math.sqrt(sqr(rhobar) + sqr(input.damp_val)) / rho;
+                            sn = beta / rho;
+                        }
+                        else{
+                            cs=0;
+                            sn=0;
+                        }
+
 
                         theta = sn * alpha;
                         rhobar = -cs * alpha;
@@ -2552,21 +2569,23 @@
                          */
                         for (indx = 0; indx < input.num_cols; indx++) {
                             /* update the solution vector x */
-                            output.sol_vec[indx] += (phi / rho) *
-                            work.srch_dir_vec[indx];
+                            if (rho*rho>0.0){
+                                output.sol_vec[indx] += (phi / rho) *work.srch_dir_vec[indx];
 
-                            /* update the standard error estimates vector se */
-                            output.std_err_vec[indx] += sqr((1.0 / rho) *
-                            work.srch_dir_vec[indx]);
+                                /* update the standard error estimates vector se */
+                                output.std_err_vec[indx] += sqr((1.0 / rho) *work.srch_dir_vec[indx]);
 
-                            /* accumulate this quantity to estimate condition number of A
-                             */
-                            ddnorm += sqr((1.0 / rho) * work.srch_dir_vec[indx]);
+                                /* accumulate this quantity to estimate condition number of A
+                                 */
+                                ddnorm += sqr((1.0 / rho) * work.srch_dir_vec[indx]);
 
-                            /* update the search direction vector w */
-                            work.srch_dir_vec[indx] =
-                                work.bidiag_wrk_vec[indx] -
-                                (theta / rho) * work.srch_dir_vec[indx];
+                                /* update the search direction vector w */
+                                work.srch_dir_vec[indx] =
+                                    work.bidiag_wrk_vec[indx] -
+                                    (theta / rho) * work.srch_dir_vec[indx];
+                            }
+
+
                         }
                         /*
                          *     Use a plane rotation on the right to eliminate the super-diagonal element
@@ -2575,15 +2594,26 @@
                          */
                         delta = sn2 * rho;
                         gammabar = -cs2 * rho;
-                        zetabar = (phi - delta * zeta) / gammabar;
+                        if (gammabar*gammabar>0.0){
+                            zetabar = (phi - delta * zeta) / gammabar;
+                        }
+                        else
+                            zetabar=0;
 
                         /* compute an estimate of the solution norm || x || */
                         output.sol_norm = Math.sqrt(xxnorm + sqr(zetabar));
 
                         gamma_ = Math.sqrt(sqr(gammabar) + sqr(theta));
-                        cs2 = gammabar / gamma_;
-                        sn2 = theta / gamma_;
-                        zeta = (phi - delta * zeta) / gamma_;
+                        if (gamma_*gamma_>0.0){
+                            cs2 = gammabar / gamma_;
+                            sn2 = theta / gamma_;
+                            zeta = (phi - delta * zeta) / gamma_;
+                        }else{
+                            cs2=0;
+                            sn2=0;
+                            zeta=0;
+                        }
+
 
                         /* accumulate this quantity to estimate solution norm || x || */
                         xxnorm += sqr(zeta);
@@ -2601,21 +2631,28 @@
                         /*
                          *     Use these norms to estimate the values of the three stopping criteria.
                          */
-                        stop_crit_1 = output.resid_norm / bnorm;
+                        if (bnorm*bnorm>0.0){
+                            stop_crit_1 = output.resid_norm / bnorm;
+                        }
+
 
                         stop_crit_2 = 0.0;
                         if (output.resid_norm > 0.0)
-                            stop_crit_2 = output.mat_resid_norm / ( output.frob_mat_norm *
-                            output.resid_norm );
+                            stop_crit_2 = output.mat_resid_norm / ( output.frob_mat_norm *output.resid_norm );
+                        if (output.mat_cond_num){
+                            stop_crit_3 = 1.0 / output.mat_cond_num;
+                        }
 
-                        stop_crit_3 = 1.0 / output.mat_cond_num;
 
-                        resid_tol = input.rel_rhs_err + input.rel_mat_err *
-                        output.mat_resid_norm *
-                        output.sol_norm / bnorm;
 
-                        resid_tol_mach = DBL_EPSILON + DBL_EPSILON * output.mat_resid_norm *
-                        output.sol_norm / bnorm;
+                        if (bnorm){
+                            resid_tol = input.rel_rhs_err + input.rel_mat_err *output.mat_resid_norm *output.sol_norm / bnorm;
+                            resid_tol_mach = DBL_EPSILON + DBL_EPSILON * output.mat_resid_norm *output.sol_norm / bnorm;
+                        }
+                        else{
+                            resid_tol=0;
+                            resid_tol_mach=0;
+                        }
                         /*
                          *     Check to see if any of the stopping criteria are satisfied.
                          *     First compare the computed criteria to the machine precision.
@@ -2680,13 +2717,16 @@
 
                     if (sqr(input.damp_val) > 0.0)
                         temp = +(input.num_rows);
+                    if (temp*temp>0.0){
+                        temp = output.resid_norm / Math.sqrt(temp);
+                    }else{
+                        temp=0;
+                    }
 
-                    temp = output.resid_norm / Math.sqrt(temp);
 
                     for (indx = 0; indx < input.num_cols; indx++)
                         /* update the standard error estimates vector se */
-                        output.std_err_vec[indx] = temp *
-                        Math.sqrt(output.std_err_vec[indx]);
+                        output.std_err_vec[indx] = temp *Math.sqrt(output.std_err_vec[indx]);
                     /*
                      *  If statistics are printed at each iteration, print the statistics for the
                      *  stopping condition.
