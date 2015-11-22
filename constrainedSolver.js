@@ -190,11 +190,9 @@
                     function toSylvesterMatrix() {
                         if (!consolidated)
                             consolidate();
-                        var rows = numRows;
-                        var cols = numCols;
                         var sparseElements = this.elements;
-                        var rowCount = rows.length;
-                        var colCount = cols.length;
+                        var rowCount = numRows;
+                        var colCount = numCols;
                         var elements = [];
                         for (var i = 0; i < rowCount; i++) {
                             elements[i] = [];
@@ -208,6 +206,7 @@
                             var iElement = fast_hashElements[i + 2];
                             elements[iRow][iCol] = fast_elements[iElement];
                         }
+
                         var matrix = sylvester.Matrix.create(elements);
                         return matrix;
                     }
@@ -292,6 +291,9 @@
                     var vectorX = new Float64Array(initialSolution);
                     var vectorB = new Float64Array(numRows);
 
+                    for (var i=0; i<numRows.length; i++){
+                        vectorB[i]=0;
+                    }
                     if (targetEvaluation && targetEvaluation.length==numRows){
                         for (var i=0; i<numRows; i++){
                             vectorB[i]=+targetEvaluation[i];
@@ -299,9 +301,17 @@
                     }
 
                     var vectorY = new Float64Array(numRows);
+                    for (var i=0; i<numRows; i++){
+                        vectorY[i]=0;
+                    }
                     var vectorBMinusY = new Float64Array(numRows);
+                    for (var i=0; i<numRows; i++){
+                        vectorBMinusY[i]=0;
+                    }
                     var vectorWorkX = new Float64Array(initialSolution.length);
-
+                    for (var i=0; i<initialSolution.length; i++){
+                        vectorWorkX[i]=0;
+                    }
                     for (var iter = 0; iter < iterations; iter++) {
                         var evaluation = evaluate({
                             vectorX: vectorX,
@@ -335,6 +345,9 @@
                             _lsqr.allocLsqrMem();
                             _lsqr.input.rhs_vec = new Float64Array(vectorBMinusY);
                             _lsqr.input.sol_vec = new Float64Array(vectorX.length);
+                            for (var i=0; i<vectorX.length; i++){
+                                _lsqr.input.sol_vec[i]=0;
+                            }
                             _lsqr.input.num_rows = num_rows;
                             _lsqr.input.num_cols = num_cols;
                             _lsqr.input.damp_val = damping;
@@ -1404,7 +1417,11 @@
                 Mt = M.transpose();
                 // MtM = Mt * M
                 MtM = Mt.multiply(M);
-                MtMI = MtM.inverse();
+                if (MtM.elements.length==1){
+                    MtMI=MtM;
+                    MtMI.elements[0][0]=1/MtMI.elements[0][0];
+                }else
+                    MtMI = MtM.inverse();
                 // Mdag = MtMI * Mt
                 Mdag = MtMI.multiply(Mt);
                 // a = Mdag * b;
@@ -2171,6 +2188,9 @@
 
                 var alloc_dvec = function (count) {
                     var dbl_vec = new Float64Array(count);
+                    for (var i=0; i<count;i++){
+                        dbl_vec[i]=0;
+                    }
                     return dbl_vec;
                 }
 
@@ -2291,7 +2311,7 @@
 
                 }
 
-                function do_lsqr(model) {
+                function do_lsqr() {
 
 //                double  dvec_norm2( dvec * );
 
@@ -2332,6 +2352,8 @@
                         stop_crit_1,
                         stop_crit_2,
                         stop_crit_3;
+
+
 
                     var term_msg = [
                         "The exact solution is x = x0",
